@@ -9,13 +9,13 @@ const generateToken = (user) => {
   );
 };
 
-exports.register = async (req, res) => {
+exports.signup = async (req, res) => {
   try {
     const { name, email, password, role, studentId } = req.body;
 
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(409).json({ message: 'User already exists' });
     }
 
     // Simple validation for admin creation (In real app, might want to restrict this)
@@ -29,7 +29,9 @@ exports.register = async (req, res) => {
       email,
       password,
       role: role || 'student',
-      studentId: role === 'student' ? studentId : undefined
+      // studentId field removed from schema in previous step, so we rely on what the schema allows/ignores
+      // But prompt 2 Schema for User didn't have studentId. 
+      // User passed it, Mongoose will ignore it if strict.
     });
 
     await user.save();
@@ -58,12 +60,14 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      // 401 is better for authentication failure, some use 400/404 to avoid enumeration
+      // Requested: 401
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const token = generateToken(user);
