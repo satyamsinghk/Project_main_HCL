@@ -21,7 +21,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await api.post('/auth/login', { email, password });
-      const { token, user } = res.data;
+      // Standard response: { success: true, data: { token, user } }
+      const { token, user } = res.data.data;
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
@@ -39,11 +40,23 @@ export const AuthProvider = ({ children }) => {
   const signup = async (name, email, password, role) => {
     try {
       const res = await api.post('/auth/signup', { name, email, password, role });
-      const { token, user } = res.data;
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      setUser(user);
+      // Note: Admin might require approval, so token might be missing or handled differently
+      // My backend returns { user } but not token for Students if approval needed.
+      // But now I changed response format.
+      // Backend: data: { user } (if student) or { token, user } if authorized? 
+      // Checked AuthController:
+      // If student: data: { user } (and returns 201). Token is NOT returned.
+      // So destructuring token might fail or be undefined.
+      
+      const { data } = res.data; // data contains user, maybe token
+      
+      if (data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          setUser(data.user);
+      }
+      // If no token (approval needed), we don't login automatically.
+      
       return { success: true };
     } catch (error) {
         return { 

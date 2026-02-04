@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { signup, login } = require('../controllers/authController');
+// Controller exports were "register" and "login" in my updated code, but previous file might have used "signup".
+// I will check the previous controller file. It used "signup". 
+// I renamed it "register" in the Swagger comments but the export needs to match.
+// I'll stick to "register" as per standard, or alias it.
+// Let's use register/login.
 
-// @route   POST api/auth/signup
-// @desc    Register user
-// @access  Public
-router.post('/signup', signup);
+const { register, login } = require('../controllers/authController');
 
-// @route   POST api/auth/login
-// @desc    Login user & get token
-// @access  Public
+// @route   POST api/auth/signup -> Register
+router.post('/signup', register); 
 router.post('/login', login);
 
 module.exports = router;

@@ -16,8 +16,10 @@ const StudentDashboard = () => {
     const fetchBooks = async () => {
         try {
             const res = await api.get(`/student/books?page=${page}&limit=5`);
-            setBooks(res.data.books);
-            setTotalPages(res.data.totalPages);
+            if (res.data.success) {
+                setBooks(res.data.data.books);
+                setTotalPages(res.data.data.totalPages);
+            }
         } catch (error) {
             console.error(error);
         }
@@ -27,7 +29,9 @@ const StudentDashboard = () => {
     const fetchMyBooks = async () => {
         try {
             const res = await api.get('/student/mybooks'); // Updated route
-            setMyBooks(res.data);
+            if (res.data.success) {
+                setMyBooks(res.data.data);
+            }
         } catch (error) {
             console.error(error);
         }

@@ -1,7 +1,8 @@
 {
 	"info": {
-		"_postman_id": "c6229b4b-4b2a-45e3-85f5-ef8a1c93a0b1",
+		"_postman_id": "c1b4e8b3-1234-4567-8910-abcdef123456",
 		"name": "Library Management System",
+		"description": "API Collection for MERN Library System",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -9,7 +10,7 @@
 			"name": "Auth",
 			"item": [
 				{
-					"name": "Register Student",
+					"name": "Register (Student)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -17,42 +18,28 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Student One\",\n    \"email\": \"student@example.com\",\n    \"password\": \"password123\",\n    \"role\": \"student\",\n    \"studentId\": \"STU001\"\n}"
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"student@example.com\",\n    \"password\": \"password123\",\n    \"role\": \"student\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/auth/register",
-							"host": ["{{base_url}}"],
-							"path": ["api", "auth", "register"]
+							"raw": "http://localhost:5000/api/auth/signup",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "auth", "signup"]
 						}
 					}
 				},
 				{
-					"name": "Register Admin",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Admin One\",\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\",\n    \"role\": \"admin\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/register",
-							"host": ["{{base_url}}"],
-							"path": ["api", "auth", "register"]
-						}
-					}
-				},
-				{
-					"name": "Login Student",
+					"name": "Login (Admin)",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
 									"var jsonData = pm.response.json();",
-									"pm.environment.set(\"student_token\", jsonData.token);"
+									"if(jsonData.success) {",
+									"    pm.environment.set(\"adminToken\", jsonData.data.token);",
+									"}"
 								],
 								"type": "text/javascript"
 							}
@@ -65,41 +52,13 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"student@example.com\",\n    \"password\": \"password123\"\n}"
+							"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"admin123\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/auth/login",
-							"host": ["{{base_url}}"],
-							"path": ["api", "auth", "login"]
-						}
-					}
-				},
-				{
-					"name": "Login Admin",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"pm.environment.set(\"admin_token\", jsonData.token);"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Content-Type", "value": "application/json" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/login",
-							"host": ["{{base_url}}"],
+							"raw": "http://localhost:5000/api/auth/login",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
 							"path": ["api", "auth", "login"]
 						}
 					}
@@ -110,97 +69,53 @@
 			"name": "Admin",
 			"item": [
 				{
+					"name": "Get All Books",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/admin/books?page=1&limit=5",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "admin", "books"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "5" }
+							]
+						}
+					}
+				},
+				{
 					"name": "Add Book",
 					"request": {
 						"method": "POST",
 						"header": [
-							{ "key": "Authorization", "value": "Bearer {{admin_token}}" },
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
 							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"title\": \"Great Gatsby\",\n    \"author\": \"F. Scott Fitzgerald\",\n    \"isbn\": \"9780743273565\",\n    \"quantity\": 5\n}"
+							"raw": "{\n    \"title\": \"The Great Gatsby\",\n    \"author\": \"F. Scott Fitzgerald\",\n    \"totalCopies\": 5\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/admin/books",
-							"host": ["{{base_url}}"],
+							"raw": "http://localhost:5000/api/admin/books",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
 							"path": ["api", "admin", "books"]
-						}
-					}
-				},
-				{
-					"name": "List Students",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{admin_token}}" }
-						],
-						"url": {
-							"raw": "{{base_url}}/api/admin/students",
-							"host": ["{{base_url}}"],
-							"path": ["api", "admin", "students"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Student",
-			"item": [
-				{
-					"name": "View Available Books",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{student_token}}" }
-						],
-						"url": {
-							"raw": "{{base_url}}/api/student/books",
-							"host": ["{{base_url}}"],
-							"path": ["api", "student", "books"]
-						}
-					}
-				},
-				{
-					"name": "Borrow Book",
-					"request": {
-						"method": "POST",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{student_token}}" },
-							{ "key": "Content-Type", "value": "application/json" }
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"bookId\": \"<INSERT_BOOK_ID_HERE>\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/student/borrow",
-							"host": ["{{base_url}}"],
-							"path": ["api", "student", "borrow"]
-						}
-					}
-				},
-                {
-					"name": "My Records",
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Authorization", "value": "Bearer {{student_token}}" }
-						],
-						"url": {
-							"raw": "{{base_url}}/api/student/my-records",
-							"host": ["{{base_url}}"],
-							"path": ["api", "student", "my-records"]
 						}
 					}
 				}
 			]
 		}
 	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:5000"
-		}
-	]
+    "variable": [
+        {
+            "key": "adminToken",
+            "value": ""
+        }
+    ]
 }

@@ -1,8 +1,32 @@
-const Registration = require('../models/Registration');
+const BorrowRecord = require('../models/Registration');
 const Book = require('../models/Book');
 
-// Get available books
-exports.getAvailableBooks = async (req, res) => {
+/**
+ * @swagger
+ * tags:
+ *   name: Student
+ *   description: Student Book Operations
+ */
+
+/**
+ * @swagger
+ * /student/books:
+ *   get:
+ *     summary: Get available books
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *     responses:
+ *       200: { description: List of available books }
+ */
+exports.getAvailableBooks = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -14,98 +38,119 @@ exports.getAvailableBooks = async (req, res) => {
     
     const total = await Book.countDocuments({ availableCopies: { $gt: 0 } });
 
-    res.json({
+    sendResponse(res, 200, 'Available books', {
       books,
       currentPage: page,
       totalPages: Math.ceil(total / limit),
       totalBooks: total
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    next(error);
   }
 };
 
-// Get my borrowed books and due/fine info
-exports.getMyBorrowRecords = async (req, res) => {
-  try {
-    const records = await Registration.find({ studentId: req.user.id }).populate('bookId', 'title author');
-    res.json(records);
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
-};
-
-// Borrow Book
-exports.borrowBook = async (req, res) => {
+/**
+ * @swagger
+ * /student/borrow:
+ *   post:
+ *     summary: Borrow a book
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               bookId: { type: string }
+ *     responses:
+ *       200: { description: Book borrowed }
+ */
+exports.borrowBook = async (req, res, next) => {
   try {
     const { bookId } = req.body;
-    
-    // Check book availability
+    const userId = req.user.id;
+
     const book = await Book.findById(bookId);
     if (!book || book.availableCopies < 1) {
-      return res.status(400).json({ message: 'Book not available' });
+      return sendResponse(res, 400, 'Book not available');
     }
 
-    // Check if already borrowed and not returned? (Optional validation)
-    
-    // Create record
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 14); // 2 weeks due
+    const existingRef = await BorrowRecord.findOne({ userId, bookId, status: 'borrowed' });
+    if(existingRef) {
+        return sendResponse(res, 400, 'You have already borrowed this book');
+    }
 
-    const registration = new Registration({
-      studentId: req.user.id,
+    const record = new BorrowRecord({
+      userId,
       bookId,
-      issueDate: Date.now(),
-      returnDate: null, // explicit
-      dueAmount: 0,
-      status: 'borrowed'
+      issueDate: new Date(),
+      status: 'borrowed',
+      dueAmount: 0 
     });
 
-    // Update book quantity
+    await record.save();
+
     book.availableCopies -= 1;
     await book.save();
-    await registration.save();
 
-    res.status(201).json({ message: 'Book borrowed successfully', registration });
-
+    sendResponse(res, 200, 'Book borrowed successfully', record);
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    next(error);
   }
 };
 
-// Return Book
-exports.returnBook = async (req, res) => {
+exports.returnBook = async (req, res, next) => {
     try {
-        const { registrationId } = req.body;
-        const registration = await Registration.findById(registrationId);
+        const { registrationId } = req.body; // or recordId
+        // Assuming BorrowRecord model has userId, bookId.
+        // Wait, frontend sends { registrationId } ?
+        // Previous frontend code: `api.post('/student/return', { registrationId })`.
+        // So I need to find by ID.
 
-        if(!registration){
-            return res.status(404).json({message: "Registration record not found"});
-        }
-        if(registration.status === 'returned'){
-            return res.status(400).json({message: "Book already returned"});
-        }
+        // Note: Previous code might have used `userId` + `bookId` or just `_id`. 
+        // StudentDashboard passes `record._id` as `registrationId`.
+        const record = await BorrowRecord.findById(registrationId);
         
-        // Calculate dueAmount/fine
-        // In a real app we'd compare returnDate vs dueDate calculated purely from issueDate or stored
-        // Here we just update status
-        registration.returnDate = new Date();
-        registration.status = 'returned';
-        
-        // Mock fine logic if late
-        // if (registration.returnDate > calculatedDueDate) ...
+        if (!record) return sendResponse(res, 404, 'Record not found');
+        if (record.status === 'returned') return sendResponse(res, 400, 'Already returned');
 
-        await registration.save();
+        record.status = 'returned';
+        record.returnDate = new Date();
+        await record.save();
 
-        // Increment book availability
-        const book = await Book.findById(registration.bookId);
-        if(book){
+        // Update book copies
+        const book = await Book.findById(record.bookId);
+        if(book) {
             book.availableCopies += 1;
             await book.save();
         }
 
-        res.json({message: "Book returned", registration});
+        sendResponse(res, 200, 'Book returned', record);
     } catch (error) {
-        res.status(500).json({ message: 'Server Error', error: error.message });
+        next(error);
     }
 }
+
+/**
+ * @swagger
+ * /student/mybooks:
+ *   get:
+ *     summary: Get my borrowed books
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200: { description: List of my books }
+ */
+exports.getMyBorrowRecords = async (req, res, next) => {
+  try {
+    const records = await BorrowRecord.find({ userId: req.user.id })
+      .populate('bookId', 'title author');
+    sendResponse(res, 200, 'My books', records);
+  } catch (error) {
+    next(error);
+  }
+};

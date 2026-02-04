@@ -26,8 +26,11 @@ const AdminDashboard = () => {
     const fetchBooks = async () => {
         try {
             const res = await api.get(`/admin/books?page=${page}&limit=5`);
-            setBooks(res.data.books);
-            setTotalPages(res.data.totalPages);
+            // Standard format: { success, data: { books, totalPages, ... } }
+            if (res.data.success) {
+                setBooks(res.data.data.books);
+                setTotalPages(res.data.data.totalPages);
+            }
         } catch (error) {
             console.error(error);
         }
@@ -37,7 +40,9 @@ const AdminDashboard = () => {
     const fetchStudents = async () => {
          try {
             const res = await api.get('/admin/students');
-            setStudents(res.data);
+            if (res.data.success) {
+                setStudents(res.data.data);
+            }
         } catch (error) {
             console.error(error);
         }
@@ -47,7 +52,9 @@ const AdminDashboard = () => {
     const fetchBorrowed = async () => {
         try {
             const res = await api.get('/admin/borrowed-books');
-            setBorrowedBooks(res.data);
+            if (res.data.success) {
+                setBorrowedBooks(res.data.data);
+            }
         } catch (error) {
             console.error(error);
         }

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const sendResponse = require('../../../utils/responseHandler');
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -9,19 +10,57 @@ const generateToken = (user) => {
   );
 };
 
-exports.signup = async (req, res) => {
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Authentication Management
+ */
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [student, admin]
+ *     responses:
+ *       201:
+ *         description: Registration successful
+ *       409:
+ *         description: User already exists
+ */
+exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role, studentId } = req.body;
+    const { name, email, password, role } = req.body;
 
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(409).json({ message: 'User already exists' });
+        return sendResponse(res, 409, 'User already exists');
     }
 
     const userRole = role || 'student';
-    
-    // Admins are auto-approved (or maybe not? Assuming admins are special)
-    // Students require approval (default false)
+    // Students require approval (default false), Admins auto-approved (for now/bootstrap)
+    // Adjust logic if you want strict admin approval. Assuming admins created here are trustworthy or via secret.
     const isApproved = userRole === 'admin' ? true : false; 
 
     user = new User({
@@ -34,49 +73,72 @@ exports.signup = async (req, res) => {
 
     await user.save();
 
-    res.status(201).json({
-      message: 'Registration successful. Please wait for Admin approval to login.',
-      // No token returned for students as they can't login yet
-      // If admin, maybe we give token? consistent behavior is better: login separately.
+    sendResponse(res, 201, 'Registration successful. Please wait for Admin approval to login.', {
+        user: { id: user._id, name: user.name, email: user.email, role: user.role, isApproved }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    next(error);
   }
 };
 
-exports.login = async (req, res) => {
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
+ *       403:
+ *         description: Account not approved
+ */
+exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return sendResponse(res, 401, 'Invalid credentials');
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return sendResponse(res, 401, 'Invalid credentials');
     }
 
     if (user.role === 'student' && !user.isApproved) {
-        return res.status(403).json({ message: 'Account not approved yet. Please contact Admin.' });
+        return sendResponse(res, 403, 'Account not approved yet. Please contact Admin.');
     }
 
     const token = generateToken(user);
-
-    res.json({
-      message: 'Login successful',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+    
+    sendResponse(res, 200, 'Login successful', {
+        token,
+        user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+        }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    next(error);
   }
 };

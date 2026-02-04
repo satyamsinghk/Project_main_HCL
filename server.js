@@ -4,6 +4,9 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./config/swagger');
+const errorHandler = require('./middleware/errorMiddleware');
 
 dotenv.config();
 
@@ -20,23 +23,16 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/library-sys
   .then(() => console.log('MongoDB Connected'))
   .catch(err => console.error('MongoDB Connection Error:', err));
 
-// Routes (Placeholder)
-app.get('/', (req, res) => {
-  res.send('Library Management System API');
-});
+// Swagger Docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
-// Implementation of services
+// Routes
 app.use('/api/auth', require('./services/auth-service/routes/authRoutes'));
 app.use('/api/student', require('./services/student-service/routes/studentRoutes'));
 app.use('/api/admin', require('./services/admin-service/routes/adminRoutes'));
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Internal Server Error', error: err.message });
-});
+// Error Middleware (Must be last)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
