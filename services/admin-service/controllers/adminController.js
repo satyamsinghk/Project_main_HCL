@@ -1,28 +1,17 @@
-// Import Book from Student Service as per new requirements
+// Import Book and User and Registration (Refactored to use correct paths)
 const Book = require('../../student-service/models/Book');
 const User = require('../../auth-service/models/User'); 
+const Registration = require('../../student-service/models/Registration');
 
 // Book CRUD
 
 exports.addBook = async (req, res) => {
   try {
-    const { title, author, isbn, totalCopies } = req.body; // Changed quantity -> totalCopies
-
-    // Simplified check; in real systems ISBN check might be more robust
-    // const existingBook = await Book.findOne({ isbn }); 
-    // if (existingBook) ...
+    const { title, author, isbn, totalCopies } = req.body;
 
     const book = new Book({
       title,
       author,
-      // isbn, // Note: ISBN was removed from Prompt 2 requirements list for Book Schema. 
-             // Prompt says: title, author, totalCopies, availableCopies.
-             // I will remove ISBN to strict adherence, OR keep it if it's implicitly needed.
-             // Given "Prompt 2" list: title, author, totalCopies, availableCopies.
-             // I'll stick to the list + maybe ISBN? 
-             // Actually, strict following of "Create... Schema: [list]" usually implies ONLY that list?
-             // But let's assume ISBN is usually good. However, if I must strictly follow, I'll remove it.
-             // Let's keep it in schemas if helpful, but for now I'll support `totalCopies`.
       totalCopies,
       availableCopies: totalCopies
     });
@@ -77,19 +66,44 @@ exports.deleteBook = async (req, res) => {
 
 exports.getAllBooks = async (req, res) => {
   try {
-    const books = await Book.find();
-    res.json(books);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const books = await Book.find()
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Book.countDocuments();
+
+    res.json({
+      books,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalBooks: total
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
 
-// User Management
+// User & Borrow Management
 
 exports.getAllStudents = async (req, res) => {
   try {
     const students = await User.find({ role: 'student' }).select('-password');
     res.json(students);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+exports.getAllBorrowedBooks = async (req, res) => {
+  try {
+    const records = await Registration.find({ status: 'borrowed' })
+      .populate('studentId', 'name email')
+      .populate('bookId', 'title author');
+    res.json(records);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }

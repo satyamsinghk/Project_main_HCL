@@ -6,24 +6,37 @@ import { useNavigate } from 'react-router-dom';
 const AdminDashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    
+    // Data States
     const [books, setBooks] = useState([]);
-    const [students, setStudents] = useState([]);
-    const [newBook, setNewBook] = useState({ title: '', author: '', totalCopies: 1 });
-    const [view, setView] = useState('books'); // 'books' or 'students'
+    const [borrowedBooks, setBorrowedBooks] = useState([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    
+    // View State
+    const [view, setView] = useState('books'); // 'books' or 'borrowed'
+    const [editMode, setEditMode] = useState(false);
+    const [currentBookId, setCurrentBookId] = useState(null);
 
+    // Form State
+    const [bookForm, setBookForm] = useState({ title: '', author: '', totalCopies: 1 });
+
+    // Fetch Books
     const fetchBooks = async () => {
         try {
-            const res = await api.get('/admin/books');
-            setBooks(res.data);
+            const res = await api.get(`/admin/books?page=${page}&limit=5`);
+            setBooks(res.data.books);
+            setTotalPages(res.data.totalPages);
         } catch (error) {
             console.error(error);
         }
     };
 
-    const fetchStudents = async () => {
+    // Fetch Borrowed Books
+    const fetchBorrowed = async () => {
         try {
-            const res = await api.get('/admin/students');
-            setStudents(res.data);
+            const res = await api.get('/admin/borrowed-books');
+            setBorrowedBooks(res.data);
         } catch (error) {
             console.error(error);
         }
@@ -31,17 +44,40 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         if (view === 'books') fetchBooks();
-        if (view === 'students') fetchStudents();
-    }, [view]);
+        if (view === 'borrowed') fetchBorrowed();
+    }, [view, page]);
 
-    const handleAddBook = async (e) => {
+    const handleFormSubmit = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/admin/books', newBook);
-            setNewBook({ title: '', author: '', totalCopies: 1 });
+            if (editMode) {
+                await api.put(`/admin/books/${currentBookId}`, bookForm);
+                alert('Book updated!');
+            } else {
+                await api.post('/admin/books', bookForm);
+                alert('Book added!');
+            }
+            setBookForm({ title: '', author: '', totalCopies: 1 });
+            setEditMode(false);
             fetchBooks();
         } catch (error) {
-            alert('Error adding book: ' + (error.response?.data?.message || 'Server Error'));
+            alert('Error: ' + (error.response?.data?.message || 'Server Error'));
+        }
+    };
+
+    const handleEdit = (book) => {
+        setBookForm({ title: book.title, author: book.author, totalCopies: book.totalCopies });
+        setCurrentBookId(book._id);
+        setEditMode(true);
+    };
+
+    const handleDelete = async (id) => {
+        if(!window.confirm("Are you sure?")) return;
+        try {
+            await api.delete(`/admin/books/${id}`);
+            fetchBooks();
+        } catch (error) {
+            alert('Delete failed');
         }
     };
 
@@ -50,49 +86,93 @@ const AdminDashboard = () => {
         navigate('/login');
     };
 
+    const styles = {
+        table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
+        th: { border: '1px solid #ddd', padding: '8px', textAlign: 'left', backgroundColor: '#f2f2f2' },
+        td: { border: '1px solid #ddd', padding: '8px' },
+        btn: { padding: '5px 10px', cursor: 'pointer', marginRight: '5px' }
+    };
+
     return (
         <div style={{ padding: '20px' }}>
             <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <h1>Admin Dashboard - {user?.name}</h1>
-                <button onClick={handleLogout} style={{ padding: '5px 10px', background: 'red', color: 'white' }}>Logout</button>
+                <button onClick={handleLogout} style={{...styles.btn, background: 'red', color: 'white'}}>Logout</button>
             </header>
 
             <div style={{ marginBottom: '20px' }}>
-                <button onClick={() => setView('books')} style={{ marginRight: '10px' }}>Manage Books</button>
-                <button onClick={() => setView('students')}>View Students</button>
+                <button onClick={() => { setView('books'); setPage(1); }} style={{...styles.btn, background: view==='books'?'#ddd':'#fff'}}>Manage Books</button>
+                <button onClick={() => setView('borrowed')} style={{...styles.btn, background: view==='borrowed'?'#ddd':'#fff'}}>View Borrowed Books</button>
             </div>
 
             {view === 'books' && (
                 <div>
-                    <h3>Add New Book</h3>
-                    <form onSubmit={handleAddBook} style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-                        <input placeholder="Title" value={newBook.title} onChange={e => setNewBook({...newBook, title: e.target.value})} required />
-                        <input placeholder="Author" value={newBook.author} onChange={e => setNewBook({...newBook, author: e.target.value})} required />
-                        <input type="number" placeholder="Total Copies" value={newBook.totalCopies} onChange={e => setNewBook({...newBook, totalCopies: parseInt(e.target.value)})} min="1" required />
-                        <button type="submit">Add Book</button>
+                    <h3>{editMode ? 'Edit Book' : 'Add New Book'}</h3>
+                    <form onSubmit={handleFormSubmit} style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <input placeholder="Title" value={bookForm.title} onChange={e => setBookForm({...bookForm, title: e.target.value})} required style={{padding: '5px'}} />
+                        <input placeholder="Author" value={bookForm.author} onChange={e => setBookForm({...bookForm, author: e.target.value})} required style={{padding: '5px'}} />
+                        <input type="number" placeholder="Total Copies" value={bookForm.totalCopies} onChange={e => setBookForm({...bookForm, totalCopies: parseInt(e.target.value)})} min="1" required style={{padding: '5px'}} />
+                        <button type="submit" style={{...styles.btn, background: 'blue', color: 'white'}}>{editMode ? 'Update' : 'Add'}</button>
+                        {editMode && <button type="button" onClick={() => { setEditMode(false); setBookForm({ title: '', author: '', totalCopies: 1 }); }} style={styles.btn}>Cancel</button>}
                     </form>
 
                     <h3>Book List</h3>
-                    <ul>
-                        {books.map(book => (
-                            <li key={book._id}>
-                                <strong>{book.title}</strong> by {book.author} (Available: {book.availableCopies}/{book.totalCopies})
-                            </li>
-                        ))}
-                    </ul>
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.th}>Title</th>
+                                <th style={styles.th}>Author</th>
+                                <th style={styles.th}>Total</th>
+                                <th style={styles.th}>Available</th>
+                                <th style={styles.th}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {books.map(book => (
+                                <tr key={book._id}>
+                                    <td style={styles.td}>{book.title}</td>
+                                    <td style={styles.td}>{book.author}</td>
+                                    <td style={styles.td}>{book.totalCopies}</td>
+                                    <td style={styles.td}>{book.availableCopies}</td>
+                                    <td style={styles.td}>
+                                        <button onClick={() => handleEdit(book)} style={{...styles.btn, background: 'orange'}}>Edit</button>
+                                        <button onClick={() => handleDelete(book._id)} style={{...styles.btn, background: 'red', color: 'white'}}>Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <div style={{ marginTop: '10px' }}>
+                        <button disabled={page <= 1} onClick={() => setPage(page - 1)} style={styles.btn}>Prev</button>
+                        <span> Page {page} of {totalPages} </span>
+                        <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} style={styles.btn}>Next</button>
+                    </div>
                 </div>
             )}
 
-            {view === 'students' && (
+            {view === 'borrowed' && (
                 <div>
-                    <h3>Registered Students</h3>
-                    <ul>
-                        {students.map(student => (
-                            <li key={student._id}>
-                                {student.name} ({student.email})
-                            </li>
-                        ))}
-                    </ul>
+                    <h3>Borrowed Books List</h3>
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.th}>Student Name</th>
+                                <th style={styles.th}>Book Title</th>
+                                <th style={styles.th}>Issue Date</th>
+                                <th style={styles.th}>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {borrowedBooks.map(record => (
+                                <tr key={record._id}>
+                                    <td style={styles.td}>{record.studentId?.name || 'Unknown'}</td>
+                                    <td style={styles.td}>{record.bookId?.title || 'Unknown'}</td>
+                                    <td style={styles.td}>{new Date(record.issueDate).toLocaleDateString()}</td>
+                                    <td style={styles.td}>{record.status}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
         </div>

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { addBook, updateBook, deleteBook, getAllBooks, getAllStudents } = require('../controllers/adminController');
+const { addBook, updateBook, deleteBook, getAllBooks, getAllStudents, getAllBorrowedBooks } = require('../controllers/adminController');
 const { authMiddleware, authorize } = require('../../auth-service/middleware/authMiddleware');
 
 // Validating roles
@@ -10,9 +10,10 @@ const adminOnly = [authMiddleware, authorize('admin')];
 router.post('/books', adminOnly, addBook);
 router.put('/books/:id', adminOnly, updateBook);
 router.delete('/books/:id', adminOnly, deleteBook);
-router.get('/books', adminOnly, getAllBooks); // Admin view of books
+router.get('/books', adminOnly, getAllBooks); 
 
-// Student Management Routes
+// Student & Borrow Management Routes
 router.get('/students', adminOnly, getAllStudents);
+router.get('/borrowed-books', adminOnly, getAllBorrowedBooks); // New Route
 
 module.exports = router;

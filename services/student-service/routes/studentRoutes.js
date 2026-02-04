@@ -6,7 +6,7 @@ const { authMiddleware, authorize } = require('../../auth-service/middleware/aut
 const studentOnly = [authMiddleware, authorize('student')];
 
 router.get('/books', authMiddleware, getAvailableBooks);
-router.get('/my-records', studentOnly, getMyBorrowRecords);
+router.get('/mybooks', studentOnly, getMyBorrowRecords);
 router.post('/borrow', studentOnly, borrowBook);
 router.post('/return', studentOnly, returnBook);
 

@@ -4,8 +4,22 @@ const Book = require('../models/Book');
 // Get available books
 exports.getAvailableBooks = async (req, res) => {
   try {
-    const books = await Book.find({ availableCopies: { $gt: 0 } });
-    res.json(books);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const books = await Book.find({ availableCopies: { $gt: 0 } })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Book.countDocuments({ availableCopies: { $gt: 0 } });
+
+    res.json({
+      books,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalBooks: total
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
