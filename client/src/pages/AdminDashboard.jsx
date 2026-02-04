@@ -62,11 +62,12 @@ const AdminDashboard = () => {
     const handleFormSubmit = async (e) => {
         e.preventDefault();
         try {
+            const payload = { ...bookForm, totalCopies: Number(bookForm.totalCopies) || 1 };
             if (editMode) {
-                await api.put(`/admin/books/${currentBookId}`, bookForm);
+                await api.put(`/admin/books/${currentBookId}`, payload);
                 alert('Book updated!');
             } else {
-                await api.post('/admin/books', bookForm);
+                await api.post('/admin/books', payload);
                 alert('Book added!');
             }
             setBookForm({ title: '', author: '', totalCopies: 1 });
@@ -134,7 +135,7 @@ const AdminDashboard = () => {
                     <form onSubmit={handleFormSubmit} style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                         <input placeholder="Title" value={bookForm.title} onChange={e => setBookForm({...bookForm, title: e.target.value})} required style={{padding: '5px'}} />
                         <input placeholder="Author" value={bookForm.author} onChange={e => setBookForm({...bookForm, author: e.target.value})} required style={{padding: '5px'}} />
-                        <input type="number" placeholder="Total Copies" value={bookForm.totalCopies} onChange={e => setBookForm({...bookForm, totalCopies: parseInt(e.target.value)})} min="1" required style={{padding: '5px'}} />
+                        <input type="number" placeholder="Total Copies" value={bookForm.totalCopies} onChange={e => setBookForm({...bookForm, totalCopies: e.target.value === '' ? '' : parseInt(e.target.value)})} min="1" required style={{padding: '5px'}} />
                         <button type="submit" style={{...styles.btn, background: 'blue', color: 'white'}}>{editMode ? 'Update' : 'Add'}</button>
                         {editMode && <button type="button" onClick={() => { setEditMode(false); setBookForm({ title: '', author: '', totalCopies: 1 }); }} style={styles.btn}>Cancel</button>}
                     </form>

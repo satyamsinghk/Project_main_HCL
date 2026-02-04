@@ -10,6 +10,7 @@ exports.addBook = async (req, res) => {
     const book = new Book({
       title,
       author,
+      isbn: isbn || `ISBN-${Date.now()}-${Math.floor(Math.random()*1000)}`, // Auto-generate if missing
       totalCopies,
       availableCopies: totalCopies
     });

@@ -59,7 +59,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    if (!user.isApproved) {
+    if (user.role === 'student' && !user.isApproved) {
         return res.status(403).json({ message: 'Account not approved yet. Please contact Admin.' });
     }
 
