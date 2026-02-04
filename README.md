@@ -2,7 +2,6 @@
 
 > A production-grade, full-stack Library Management System built with **Node.js, Express, MongoDB, and React**. Designed with a modular architecture simulating microservices, this system features Role-Based Access Control (RBAC), centralized error handling, and a modern UI.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Status](https://img.shields.io/badge/status-Active-green.svg)
 ![Stack](https://img.shields.io/badge/stack-MERN-orange.svg)
 
