@@ -4,18 +4,15 @@ const User = require('../../auth-service/models/User');
 const Registration = require('../../student-service/models/Registration');
 
 // Book CRUD
-
 exports.addBook = async (req, res) => {
   try {
     const { title, author, isbn, totalCopies } = req.body;
-
     const book = new Book({
       title,
       author,
       totalCopies,
       availableCopies: totalCopies
     });
-
     await book.save();
     res.status(201).json({ message: 'Book added successfully', book });
   } catch (error) {
@@ -27,24 +24,19 @@ exports.updateBook = async (req, res) => {
   try {
     const { title, author, totalCopies } = req.body;
     const book = await Book.findById(req.params.id);
-
     if (!book) {
       return res.status(404).json({ message: 'Book not found' });
     }
-
     if (totalCopies !== undefined) {
       const diff = totalCopies - book.totalCopies;
       book.totalCopies = totalCopies;
       book.availableCopies += diff; 
-      
       if (book.availableCopies < 0) {
          return res.status(400).json({ message: 'Cannot reduce copies below currently borrowed amount' });
       }
     }
-
     if (title) book.title = title;
     if (author) book.author = author;
-
     await book.save();
     res.json({ message: 'Book updated', book });
   } catch (error) {
@@ -69,13 +61,8 @@ exports.getAllBooks = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-
-    const books = await Book.find()
-      .skip(skip)
-      .limit(limit);
-
+    const books = await Book.find().skip(skip).limit(limit);
     const total = await Book.countDocuments();
-
     res.json({
       books,
       currentPage: page,
@@ -91,6 +78,7 @@ exports.getAllBooks = async (req, res) => {
 
 exports.getAllStudents = async (req, res) => {
   try {
+    // Select isApproved as well
     const students = await User.find({ role: 'student' }).select('-password');
     res.json(students);
   } catch (error) {
@@ -108,3 +96,17 @@ exports.getAllBorrowedBooks = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+
+exports.approveStudent = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const user = await User.findById(userId);
+        if(!user) return res.status(404).json({ message: 'User not found' });
+        
+        user.isApproved = true;
+        await user.save();
+        res.json({ message: 'User approved successfully', user });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+}

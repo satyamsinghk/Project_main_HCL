@@ -9,12 +9,13 @@ const AdminDashboard = () => {
     
     // Data States
     const [books, setBooks] = useState([]);
+    const [students, setStudents] = useState([]);
     const [borrowedBooks, setBorrowedBooks] = useState([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     
     // View State
-    const [view, setView] = useState('books'); // 'books' or 'borrowed'
+    const [view, setView] = useState('books'); // 'books', 'students', 'borrowed'
     const [editMode, setEditMode] = useState(false);
     const [currentBookId, setCurrentBookId] = useState(null);
 
@@ -32,6 +33,16 @@ const AdminDashboard = () => {
         }
     };
 
+    // Fetch Students
+    const fetchStudents = async () => {
+         try {
+            const res = await api.get('/admin/students');
+            setStudents(res.data);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     // Fetch Borrowed Books
     const fetchBorrowed = async () => {
         try {
@@ -44,6 +55,7 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         if (view === 'books') fetchBooks();
+        if (view === 'students') fetchStudents();
         if (view === 'borrowed') fetchBorrowed();
     }, [view, page]);
 
@@ -81,6 +93,16 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleApprove = async (id) => {
+        try {
+            await api.put(`/admin/approve/${id}`);
+            alert('Student Approved');
+            fetchStudents();
+        } catch (error) {
+            alert('Approval failed');
+        }
+    }
+
     const handleLogout = () => {
         logout();
         navigate('/login');
@@ -102,6 +124,7 @@ const AdminDashboard = () => {
 
             <div style={{ marginBottom: '20px' }}>
                 <button onClick={() => { setView('books'); setPage(1); }} style={{...styles.btn, background: view==='books'?'#ddd':'#fff'}}>Manage Books</button>
+                <button onClick={() => setView('students')} style={{...styles.btn, background: view==='students'?'#ddd':'#fff'}}>Manage Students</button>
                 <button onClick={() => setView('borrowed')} style={{...styles.btn, background: view==='borrowed'?'#ddd':'#fff'}}>View Borrowed Books</button>
             </div>
 
@@ -147,6 +170,41 @@ const AdminDashboard = () => {
                         <span> Page {page} of {totalPages} </span>
                         <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} style={styles.btn}>Next</button>
                     </div>
+                </div>
+            )}
+
+            {view === 'students' && (
+                <div>
+                    <h3>Student List</h3>
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.th}>Name</th>
+                                <th style={styles.th}>Email</th>
+                                <th style={styles.th}>Status</th>
+                                <th style={styles.th}>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {students.map(student => (
+                                <tr key={student._id}>
+                                    <td style={styles.td}>{student.name}</td>
+                                    <td style={styles.td}>{student.email}</td>
+                                    <td style={styles.td}>
+                                        {student.isApproved ? 
+                                            <span style={{color:'green'}}>Approved</span> : 
+                                            <span style={{color:'orange'}}>Pending</span>
+                                        }
+                                    </td>
+                                    <td style={styles.td}>
+                                        {!student.isApproved && (
+                                            <button onClick={() => handleApprove(student._id)} style={{...styles.btn, background: 'green', color: 'white'}}>Approve</button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
 

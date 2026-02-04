@@ -18,35 +18,26 @@ exports.signup = async (req, res) => {
       return res.status(409).json({ message: 'User already exists' });
     }
 
-    // Simple validation for admin creation (In real app, might want to restrict this)
-    if (role === 'admin' && !process.env.ALLOW_ADMIN_REGISTRATION) {
-         // for this assignment we allow it, or maybe just default to student
-         // intentionally left open for ease of testing
-    }
+    const userRole = role || 'student';
+    
+    // Admins are auto-approved (or maybe not? Assuming admins are special)
+    // Students require approval (default false)
+    const isApproved = userRole === 'admin' ? true : false; 
 
     user = new User({
       name,
       email,
       password,
-      role: role || 'student',
-      // studentId field removed from schema in previous step, so we rely on what the schema allows/ignores
-      // But prompt 2 Schema for User didn't have studentId. 
-      // User passed it, Mongoose will ignore it if strict.
+      role: userRole,
+      isApproved
     });
 
     await user.save();
 
-    const token = generateToken(user);
-
     res.status(201).json({
-      message: 'User registered successfully',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      message: 'Registration successful. Please wait for Admin approval to login.',
+      // No token returned for students as they can't login yet
+      // If admin, maybe we give token? consistent behavior is better: login separately.
     });
   } catch (error) {
     console.error(error);
@@ -60,14 +51,16 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      // 401 is better for authentication failure, some use 400/404 to avoid enumeration
-      // Requested: 401
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (!user.isApproved) {
+        return res.status(403).json({ message: 'Account not approved yet. Please contact Admin.' });
     }
 
     const token = generateToken(user);

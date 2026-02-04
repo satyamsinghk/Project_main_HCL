@@ -20,6 +20,10 @@ const userSchema = new mongoose.Schema({
     enum: ['student', 'admin'],
     default: 'student',
   },
+  isApproved: {
+    type: Boolean,
+    default: false,
+  },
   // Timestamp automatically adds createdAt
 }, { timestamps: true });
 

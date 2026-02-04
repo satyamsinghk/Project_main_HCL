@@ -14,6 +14,7 @@ router.get('/books', adminOnly, getAllBooks);
 
 // Student & Borrow Management Routes
 router.get('/students', adminOnly, getAllStudents);
-router.get('/borrowed-books', adminOnly, getAllBorrowedBooks); // New Route
+router.get('/borrowed-books', adminOnly, getAllBorrowedBooks);
+router.put('/approve/:id', adminOnly, require('../controllers/adminController').approveStudent);
 
 module.exports = router;
