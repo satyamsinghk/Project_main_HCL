@@ -1,126 +1,160 @@
-# Library Management System
+# 📚 Library Management System (MERN Stack)
 
-A full-stack Library Management System built with the **MERN Stack** (MongoDB, Express, React, Node.js), featuring a modular "microservice-like" folder structure, Role-Based Access Control (RBAC), and centralized error handling.
+> A production-grade, full-stack Library Management System built with **Node.js, Express, MongoDB, and React**. Designed with a modular architecture simulating microservices, this system features Role-Based Access Control (RBAC), centralized error handling, and a modern UI.
 
-## 🏗 Architecture
-
-The project follows a **Modular Monolith** architecture. While it runs as a single Express server, the codebase is organized into distinct services to simulate microservice boundaries:
-
-- **Auth Service**: Handles User Registration, Login, and JWT generation.
-- **Admin Service**: Manages Books (CRUD), Students, and Approval flows.
-- **Student Service**: Handles Book browsing, Borrowing, and Returning.
-
-### Tech Stack
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB (Mongoose Schema)
-- **Frontend**: React (Vite), Context API
-- **Documentation**: Swagger UI, Postman
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Status](https://img.shields.io/badge/status-Active-green.svg)
+![Stack](https://img.shields.io/badge/stack-MERN-orange.svg)
 
 ---
 
-## 📂 MongoDB Schema
+## 🌟 Key Features
 
-### 1. User
-- `name` (String)
-- `email` (String, Unique)
-- `password` (String, Hashed)
-- `role` (Enum: 'student', 'admin')
-- `isApproved` (Boolean) - *Required for Student Login*
+### 🔐 Authentication & Security
+- **JWT Authentication**: Secure stateless authentication using JSON Web Tokens.
+- **RBAC (Role-Based Access Control)**: Distinct guards for `Student` and `Admin` routes.
+- **Admin Approval Workflow**: New student accounts are locked (`isApproved: false`) until manually authorized by an Admin.
+- **Password Hashing**: Bcrypt encryption for user passwords.
 
-### 2. Book
-- `title` (String)
-- `author` (String)
-- `totalCopies` (Number)
-- `availableCopies` (Number)
-- `isbn` (String, Unique)
+### 👨‍🎓 Student Portal
+- **Dashboard**: View personal borrow history and due amounts.
+- **Book Browser**: Search and view available books with real-time stock updates.
+- **Borrowing System**: One-click borrowing (auto-validates availability and duplicate borrows).
+- **Return System**: Easy return process.
 
-### 3. Registration (Borrow Record)
-- `userId` (Ref: User)
-- `bookId` (Ref: Book)
-- `issueDate` (Date)
-- `returnDate` (Date)
-- `status` (Enum: 'borrowed', 'returned')
+### 👩‍💼 Admin Portal
+- **Dashboard**: High-level view of library stats.
+- **Book Management**: Full CRUD (Create, Read, Update, Delete) capability for the library catalog.
+- **Student Management**: View registered students and **Approve** pending accounts.
+- **Lending Monitor**: Track all borrowed books, who has them, and their due status.
+
+### ⚙️ Backend Architecture
+- **Modular Monolith**: Codebase organized into distinct "services" (`auth-service`, `admin-service`, `student-service`) sharing a single runtime.
+- **Centralized Error Handling**: Custom middleware transforms all system errors into a standardized JSON response format.
+- **Auto-Generated Documentation**: Integrated **Swagger UI** for live API testing.
 
 ---
 
-## 🚀 How to Run Locally
+## 📂 Project Structure
+
+```bash
+📦 library-management-system
+ ┣ 📂 config              # Swagger & Database configuration
+ ┣ 📂 middleware          # Auth & Error handling middleware
+ ┣ 📂 services            # Microservice logic
+ ┃ ┣ 📂 admin-service     # Admin controllers & routes
+ ┃ ┣ 📂 auth-service      # Auth controllers, User model & routes
+ ┃ ┗ 📂 student-service   # Student controllers, Borrow model & routes
+ ┣ 📂 client              # React Frontend (Vite)
+ ┃ ┣ 📂 src
+ ┃ ┃ ┣ 📂 components      # Protected Routes & UI components
+ ┃ ┃ ┣ 📂 context         # Global Auth State
+ ┃ ┃ ┗ 📂 pages           # Dashboards & Auth Pages
+ ┣ 📂 utils               # Helper functions (ResponseHandler)
+ ┣ 📜 server.js           # Entry point
+ ┗ 📜 README.md           # Documentation
+```
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js installed
-- MongoDB installed and running locally on port `27017`
+- [Node.js](https://nodejs.org/) (v14+)
+- [MongoDB](https://www.mongodb.com/try/download/community) (Running locally on port 27017)
 
 ### 1. Backend Setup
-```bash
-# Install dependencies
-npm install
+The backend runs on port **5000**.
 
-# Start the server (Runs on port 5000)
-npm start
-```
-*Environment Variables (.env) are pre-configured for local dev.*
+1.  **Clone the repository** and navigate to the root folder.
+2.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+3.  **Configure Environment**:
+    Create a `.env` file in the root (optional, defaults provided):
+    ```env
+    PORT=5000
+    MONGO_URI=mongodb://localhost:27017/library-system
+    JWT_SECRET=supersecretkey123
+    ```
+4.  **Start Server**:
+    ```bash
+    npm start
+    ```
 
 ### 2. Frontend Setup
-```bash
-cd client
+The frontend runs on port **5173**.
 
-# Install dependencies
-npm install
-
-# Start React Dev Server (Runs on port 5173)
-npm run dev
-```
-Access the App at: `http://localhost:5173`
+1.  Navigate to the client folder:
+    ```bash
+    cd client
+    ```
+2.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+3.  **Start Development Server**:
+    ```bash
+    npm run dev
+    ```
+4.  Open `http://localhost:5173` in your browser.
 
 ---
 
-## 📡 API Documentation
+## 📡 API Documentation (Swagger)
 
-### Swagger UI
-Full interactive API documentation is available at:
+We use **Swagger UI** for interactive API documentation. 
+Once the backend is running, visit:
+
 👉 **[http://localhost:5000/api-docs](http://localhost:5000/api-docs)**
 
-### API List
+This interface allows you to:
+- See all available endpoints.
+- Test APIs directly from the browser.
+- View required request schemas and example responses.
 
-#### Auth Service
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| POST | `/api/auth/signup` | Register new user |
-| POST | `/api/auth/register` | Register new user (Alternative) |
-| POST | `/api/auth/login` | Login and get JWT |
-
-#### Student Service
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| GET | `/api/student/books` | List available books (Paginated) |
-| POST | `/api/student/borrow` | Borrow a book |
-| POST | `/api/student/return` | Return a book |
-| GET | `/api/student/mybooks` | View borrow history |
-
-#### Admin Service
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| GET | `/api/admin/books` | List all books (Paginated) |
-| POST | `/api/admin/books` | Add a new book |
-| PUT | `/api/admin/books/:id` | Update a book |
-| DELETE | `/api/admin/books/:id` | Delete a book |
-| GET | `/api/admin/students` | List all students |
-| PUT | `/api/admin/approve/:id` | Approve student account |
-| GET | `/api/admin/borrowed-books` | View all borrowed books |
+### Sample API Response (Standardized)
+All success/error responses follow this format:
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": {
+    "books": [...],
+    "totalPages": 5
+  },
+  "errorCode": null
+}
+```
 
 ---
 
-## 🧪 Testing with Postman
-A `postman_collection.json` file is included in the root directory.
+## 🧪 Testing
 
-1. Open Postman.
-2. Click **Import**.
-3. Select `postman_collection.json`.
-4. Run requests (Environment variables for the URL are not needed, defaults to `localhost:5000`).
+### Postman
+A `postman_collection.json` is included in the root directory. Import it into Postman to instantly access pre-configured requests.
+
+### User Flow Walkthrough
+1.  **Register as Student**: Go to `/signup`. Create an account. You will see a "Pending Approval" message.
+2.  **Login as Admin**: Use default admin credentials (or create one using Postman with `role: "admin"`).
+3.  **Approve Student**: In Admin Dashboard -> "Manage Students", click **Approve** next to the new student.
+4.  **Login as Student**: Now you can login and borrow books.
 
 ---
 
-## 🛡 Security & Validation
-- **JWT Authentication**: All protected routes require a valid Bearer Token.
-- **RBAC**: Middleware ensures only Admins can access Admin routes.
-- **Input Validation**: Mongoose models enforce schema rules.
-- **Centralized Error Handling**: All errors return a standard JSON format.
+## 🛠 Troubleshooting
+
+**Q: Server fails with `EADDRINUSE`?**
+A: Port 5000 is occupied. Kill the process using:
+`kill -9 $(lsof -t -i:5000)` (Mac/Linux) or change PORT in `.env`.
+
+**Q: "Account not approved" error?**
+A: This is intentional. You must approve new student accounts via the Admin Dashboard.
+
+**Q: "MongoDB Connection Error"?**
+A: Ensure your local MongoDB service is running (`brew services start mongodb-community` on Mac).
+
+---
+
+

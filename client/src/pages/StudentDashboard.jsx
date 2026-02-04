@@ -122,6 +122,7 @@ const StudentDashboard = () => {
                         <span> Page {page} of {totalPages} </span>
                         <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} style={styles.btn}>Next</button>
                     </div>
+                    {books.length === 0 && <p style={{textAlign: 'center', marginTop: '20px'}}>No books found in the library.</p>}
                 </div>
             )}
 

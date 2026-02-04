@@ -1,5 +1,6 @@
 const BorrowRecord = require('../models/Registration');
 const Book = require('../models/Book');
+const sendResponse = require('../../../utils/responseHandler');
 
 /**
  * @swagger
@@ -32,11 +33,13 @@ exports.getAvailableBooks = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const books = await Book.find({ availableCopies: { $gt: 0 } })
+    const books = await Book.find()
       .skip(skip)
       .limit(limit);
     
-    const total = await Book.countDocuments({ availableCopies: { $gt: 0 } });
+    console.log(`[Student] Fetching books: Page ${page}, Limit ${limit}, Found ${books.length}`);
+
+    const total = await Book.countDocuments();
 
     sendResponse(res, 200, 'Available books', {
       books,
@@ -78,13 +81,13 @@ exports.borrowBook = async (req, res, next) => {
       return sendResponse(res, 400, 'Book not available');
     }
 
-    const existingRef = await BorrowRecord.findOne({ userId, bookId, status: 'borrowed' });
+    const existingRef = await BorrowRecord.findOne({ studentId: userId, bookId, status: 'borrowed' });
     if(existingRef) {
         return sendResponse(res, 400, 'You have already borrowed this book');
     }
 
     const record = new BorrowRecord({
-      userId,
+      studentId: userId,
       bookId,
       issueDate: new Date(),
       status: 'borrowed',
@@ -147,7 +150,7 @@ exports.returnBook = async (req, res, next) => {
  */
 exports.getMyBorrowRecords = async (req, res, next) => {
   try {
-    const records = await BorrowRecord.find({ userId: req.user.id })
+    const records = await BorrowRecord.find({ studentId: req.user.id })
       .populate('bookId', 'title author');
     sendResponse(res, 200, 'My books', records);
   } catch (error) {
